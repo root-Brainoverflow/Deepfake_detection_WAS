@@ -11,13 +11,6 @@ def extract_and_split_frames(zip_path: Path,
                              fps: float  = 0.5,
                              size: str   = "224:224",
                              qscale: int = 5):
-    """
-    1) Unzip zip_path into extracted/<zip_stem>/
-    2) For each .mp4 inside, determine original key (orig_key)
-       then look up label_map[orig_key] and gender_map[orig_key].
-    3) Extract frames at fps, resize to size, save under
-       output_base/{real|fake}/{gender}/<orig_filename>_frame_####.jpg
-    """
     stem     = zip_path.stem
     work_dir = Path("extracted") / stem
     work_dir.mkdir(parents=True, exist_ok=True)
@@ -29,24 +22,24 @@ def extract_and_split_frames(zip_path: Path,
     )
 
     for mp4 in work_dir.rglob("*.mp4"):
-        vid_full = mp4.stem                # e.g. "179032_175277_2_0270"
-        parts    = vid_full.split("_")
+        vid_full = mp4.stem  # e.g. "171347_176210_5_1030"
+        label    = label_map .get(vid_full)
+        gender   = gender_map.get(vid_full)
 
-        # determine key to lookup metadata
-        if len(parts) == 4:
-            orig_key = f"{parts[0]}_{parts[3][:3]}"  # e.g. "179032_027"
-        else:
-            orig_key = vid_full                     # original videos
-
-        label  = label_map.get(orig_key)
-        gender = gender_map.get(orig_key)
         if label is None or gender not in ("남성", "여성"):
-            print(f"[SKIP] {mp4.name}: missing metadata for key '{orig_key}'")
+            print(f"[SKIP] {mp4.name}: missing metadata for key '{vid_full}'")
             continue
 
         category = "real" if label == 0 else "fake"
         out_dir  = output_base / category / gender
         out_dir.mkdir(parents=True, exist_ok=True)
+
+        # 이미 처리된 프레임이 있으면 스킵
+        first_frame = out_dir / f"{vid_full}_frame_0001.jpg"
+        if first_frame.exists():
+            print(f"[SKIP] frames already exist for {vid_full}")
+            mp4.unlink()
+            continue
 
         pattern = f"{vid_full}_frame_%04d.jpg"
         print(f"[FRAME] {mp4.name} → {out_dir}/{pattern}")
