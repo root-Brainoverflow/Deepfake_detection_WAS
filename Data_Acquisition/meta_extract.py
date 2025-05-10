@@ -1,7 +1,6 @@
 import pandas as pd
 import subprocess
 from pathlib import Path
-from zipfile import ZipFile
 
 # ────────────────────────────
 # 1) 메타파일 경로 준비 및 full 메타 생성
@@ -38,9 +37,23 @@ print(f"[✓] 생성 완료: {out_val} (총 {len(df_val_full)}개)")
 # ────────────────────────────
 # 2) 메타데이터 로드 및 라벨 맵 생성
 # ────────────────────────────
-train_meta_path    = out_train
-validate_meta_path = out_val
-df_train_meta = pd.read_csv(train_meta_path, encoding="utf-8-sig")
-label_map_train = {row['영상ID']: row['라벨'] for _, row in df_train_meta.iterrows()}
-df_val_meta   = pd.read_csv(validate_meta_path, encoding="utf-8-sig")
-label_map_val = {row['영상ID']: row['라벨'] for _, row in df_val_meta.iterrows()}
+# Path(v).stem 으로 “179032_027.mp4” → “179032_027”
+df_train_meta = pd.read_csv("meta/train_meta_full.csv", encoding="utf-8-sig")
+label_map_train = {
+    Path(v).stem: l
+    for v, l in zip(df_train_meta["영상ID"], df_train_meta["라벨"])
+}
+gender_map_train = {
+    Path(v).stem: g
+    for v, g in zip(df_train_meta["영상ID"], df_train_meta["인물성별"])
+}
+
+df_val_meta = pd.read_csv("meta/validate_meta_full.csv", encoding="utf-8-sig")
+label_map_val = {
+    Path(v).stem: l
+    for v, l in zip(df_val_meta["영상ID"], df_val_meta["라벨"])
+}
+gender_map_val = {
+    Path(v).stem: g
+    for v, g in zip(df_val_meta["영상ID"], df_val_meta["인물성별"])
+}
