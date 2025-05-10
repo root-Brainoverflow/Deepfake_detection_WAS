@@ -14,37 +14,40 @@ def extract_and_split_frames(zip_path: Path,
 
     print(f"[UNZIP] {zip_path.name} → {work_dir}")
     subprocess.run(
-        ["unzip", "-oq", str(zip_path), "-d", str(work_dir)],
+        ["unzip","-oq",str(zip_path),"-d",str(work_dir)],
         check=True
     )
 
     for mp4 in work_dir.rglob("*.mp4"):
-        vid    = mp4.stem
-        label  = label_map .get(vid)
+        vid_full = mp4.stem                     # ex: "178172_176202_2_1190"
+        parts    = vid_full.split("_")
+        if len(parts)>=4 and parts[-1].isdigit():
+            vid = "_".join(parts[:-1])          # "178172_176202_2"
+        else:
+            vid = vid_full                      # 원본파일처럼 프레임번호 없는 경우
+
+        label  = label_map.get(vid)
         gender = gender_map.get(vid)
         if label is None or gender not in ("남자","여자"):
-            print(f"[SKIP] {mp4.name}: meta missing")
+            print(f"[SKIP] {mp4.name}: meta missing for key '{vid}'")
             continue
 
         cat     = "real" if label == 0 else "fake"
-        # video_id 디렉토리 없이 바로 gender 폴더
         out_dir = output_base/cat/gender
         out_dir.mkdir(parents=True, exist_ok=True)
 
-        # 프레임 파일명에 video_id 접두어 추가
-        pattern = f"{vid}_frame_%04d.jpg"
+        pattern = f"{vid_full}_frame_%04d.jpg"
         print(f"[FRAME] {mp4.name} → {out_dir}/{pattern}")
         subprocess.run([
-            "ffmpeg", "-i", str(mp4),
-            "-vf", f"fps={fps},scale={size}",
-            "-qscale:v", str(qscale),
+            "ffmpeg","-i",str(mp4),
+            "-vf",f"fps={fps},scale={size}",
+            "-qscale:v",str(qscale),
             str(out_dir/pattern)
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         mp4.unlink()
 
     print(f"[DONE] {stem} → frames in {output_base}\n")
-
 
 # ────────────────────────────
 # 4) ZIP 경로 수집 & 실행
