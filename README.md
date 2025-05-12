@@ -1,1 +1,1 @@
-# Deepfack_detection with WAS
+# Deepfake_detection with WAS
