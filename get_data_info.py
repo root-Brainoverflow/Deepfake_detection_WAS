@@ -1,20 +1,28 @@
 from pathlib import Path
+from collections import Counter
+import pandas as pd
 
-def get_folder_info(path_str):
-    path = Path(path_str)
-    total_size = 0
-    total_files = 0
+# 1) 프레임 루트 경로
+root = Path("frames")          # frames/train/…, frames/validate/… 가 모두 들어 있는 상위 폴더
 
-    for f in path.rglob("*"):
-        if f.is_file():
-            total_files += 1
-            total_size += f.stat().st_size  # 바이트 단위
+# 2) 모든 jpg 파일을 순회하며 video_id 추출
+cnt = Counter()
+for jpg in root.rglob("*.jpg"):
+    # 파일명 예시: 171347_176210_5_1030_frame_0001.jpg
+    video_id = jpg.stem.rsplit("_frame_", 1)[0]
+    cnt[video_id] += 1
 
-    size_mb = total_size / (1024 ** 2)
-    size_gb = total_size / (1024 ** 3)
+# 3) Counter → DataFrame 변환
+df = pd.DataFrame(cnt.items(), columns=["video_id", "num_frames"])
 
-    print(f"\n 경로: {path.resolve()}")
-    print(f"총 파일 개수: {total_files}개")
-    print(f"총 용량: {size_mb:.2f} MB ({size_gb:.2f} GB)")
+# 4) 전체 통계
+total_videos   = len(df)
+total_frames   = df["num_frames"].sum()
+min_frames     = df["num_frames"].min()
+max_frames     = df["num_frames"].max()
+mean_frames    = df["num_frames"].mean()
 
-get_folder_info("frames")
+print(f"전체 영상 수          : {total_videos:,d}")
+print(f"전체 프레임 수        : {total_frames:,d}")
+print(f"영상 1개당 프레임 수(평균): {mean_frames:.2f}")
+print(f" └ 최소 {min_frames} ~ 최대 {max_frames} 장")
