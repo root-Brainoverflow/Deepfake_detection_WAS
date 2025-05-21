@@ -116,7 +116,6 @@ if __name__=="__main__":
         nn.Linear(in_feats,1),
         nn.Sigmoid()
     )
-    # ── **모델 전체를** MPS로 옮깁니다 ────────────────────────────────
     model = model.to(device)
 
     criterion = nn.BCELoss()
