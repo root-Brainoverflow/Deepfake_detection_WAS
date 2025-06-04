@@ -1,33 +1,10 @@
-# from flask import Flask
-
-# app = Flask(__name__)
-
-# @app.route('/')
-# def home():
-#     return "Flask 서버 실행 성공!"
-
-# if __name__ == '__main__':
-#     app.run(debug=True)
-
-
-# app.py
-
 from flask import Flask, render_template, request, redirect, url_for
 from werkzeug.utils import secure_filename
 import os
 from model_utils import load_model, predict_image, extract_frames_with_ffmpeg, predict_frames_in_folder, summarize_frame_results
-
-
-
-
 import sys
 import functools
 print = functools.partial(print, flush=True)
-
-
-
-
-
 
 IMAGE_UPLOAD_FOLDER = os.path.join('static', 'uploads', 'images')
 VIDEO_UPLOAD_FOLDER = os.path.join('static', 'uploads', 'videos')
@@ -84,9 +61,6 @@ def upload_video():
     summary = summarize_frame_results(frame_results)
 
     return render_template('index.html', frame_results=frame_results, summary=summary, representative_image=representative_image)
-
-
-
 
 
 
