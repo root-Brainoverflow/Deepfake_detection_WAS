@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>딥페이크 판별기</title>
+  <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            text-align: center;
+            width: 80%;
+            max-width: 600px;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        input[type="file"] {
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+    <h2>딥페이크 이미지 판별기</h2>
+    <form action="{{ url_for('predict') }}" method="POST" enctype="multipart/form-data">
+        <input type="file" name="image" accept="image/*" required>
+        <button type="submit">판별하기</button>
+    </form>
+  
+  <!-- templates/upload.html -->
+    <form method="post" action="/upload_video" enctype="multipart/form-data">
+        <input type="file" name="video" accept="video/*">
+        <button type="submit">비디오 업로드</button>
+    </form>
+
+<!-- 이미지 탐지 결과 보여줌 -->
+    {% if result %}
+        <h3>결과: {{ result }} (신뢰도: {{ '%.2f'|format(confidence * 100) }}%)</h3>
+    <!-- <img src="{{ url_for('static', filename='../uploads/' + filename) }}" width="300"> -->
+        <img src="{{ url_for('static', filename='uploads/images/' + filename) }}" width="300">
+    {% endif %}
+
+<!-- 영상으로 탐지 결과 보여줌 -->
+    {% if frame_results %}
+        <h2>분석 요약</h2>
+        <ul>
+            <img src="{{ url_for('static', filename='frames/' + representative_image) }}" width="300">
+            <li>총 프레임 수: {{ summary.total_frames }}</li>
+            <li>Fake 비율: {{ (summary.fake_ratio * 100)|round(2) }}%</li>
+            <li>Real 비율: {{ (summary.real_ratio * 100)|round(2) }}%</li>
+            <li>평균 Confidence: {{ summary.average_confidence|round(2) }}</li>
+            <li><strong>판단:</strong> {{ summary.judgement }}</li>
+        </ul>
+        {% for frame in frame_results %}
+            <li>{{ frame.filename }} - {{ frame.label }} (Confidence: {{ frame.confidence|round(2) }})</li>
+        {% endfor %}
+    {% endif %}
+  </div>
+</body>
+</html>
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deepfake Image Classifier</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            text-align: center;
+            width: 80%;
+            max-width: 600px;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        input[type="file"] {
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>딥페이크 이미지 감지기</h1>
+        <p>이미지 파일을 업로드하면 이 이미지가 딥페이크인지 아닌지 알려드립니다.</p>
+        <input type="file" id="imageUpload" accept="image/*">
+        <button onclick="uploadImage()">이미지 업로드</button>
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        function uploadImage() {
+            var formData = new FormData();
+            var imageFile = document.getElementById('imageUpload').files[0];
+            formData.append('image', imageFile);
+
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById('result');
+                resultDiv.textContent = `결과: ${data.prediction}`;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    </script>
+
+</body>
+</html> -->
