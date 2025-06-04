@@ -49,7 +49,7 @@ transform = transforms.Compose([
     transforms.Normalize([0.5]*3, [0.5]*3)
 ])
 
-def load_model(model_path='best_model2.pth'):
+def load_model(model_path='best_ResNet50.pt'):
     # ResNet18 구조를 불러오고 출력층 수정
     model = resnet18(weights=None)  # pretrained=False 와 같음
     model.fc = nn.Linear(model.fc.in_features, 2)  # 클래스 수: 2 (Real, Fake)
@@ -60,21 +60,36 @@ def load_model(model_path='best_model2.pth'):
     model.eval()
     return model
 
-def predict_image(image_path, model):
-    # 이미지 열기 및 전처리
+def predict_image(image_path, model, temperature=1.0, alpha=6.0):
     img = Image.open(image_path).convert('RGB')
     img_tensor = transform(img).unsqueeze(0).to(device)
 
-    # 모델 추론
     with torch.no_grad():
-        output = model(img_tensor)
-        pred_class = torch.argmax(output, dim=1).item()
-        confidence = torch.softmax(output, dim=1)[0, pred_class].item()
+        logits = model(img_tensor)
+        scaled_logits = logits / temperature
+        probs = torch.softmax(scaled_logits, dim=1)[0]
+        pred_class = torch.argmax(probs).item()
+        confidence = probs[pred_class].item()
 
-    result_label = 'Real' if pred_class == 1 else 'Fake'
-    # result_label = 'Fake' if pred_class == 0 else 'Real'
-    return result_label, confidence
+        # 로짓 차이 기반 보정 신뢰도 계산
+        logit_margin = abs(logits[0, 0] - logits[0, 1])
+        adjusted_conf = torch.sigmoid(logit_margin / alpha).item()
 
+    # ✅ 클래스 매핑 수정 (0 → Real, 1 → Fake)
+    result_label = 'Real' if pred_class == 0 else 'Fake'
+
+    print("\n──────────── 예측 상세 정보 ────────────")
+    print(f"🔹 이미지 경로: {image_path}")
+    print(f"🔸 Temperature 값: {temperature}")
+    print(f"📤 원본 Logits: {logits.cpu().numpy()}")
+    print(f"🌡️  Scaled Logits (logits / T): {scaled_logits.cpu().numpy()}")
+    print(f"📈 Softmax 확률분포: {probs.cpu().numpy()}")
+    print(f"✅ 예측 클래스: {pred_class} → {result_label}")
+    print(f"🔒 Softmax Confidence: {confidence:.6f}")
+    print(f"⚖️ 조정된 Confidence (보정값): {adjusted_conf:.6f}")
+    print("──────────────────────────────────────\n")
+
+    return result_label, adjusted_conf
 
 #영상 업로드 및 이미지 추출
 def extract_frames_with_ffmpeg(video_path, output_folder, fps=1):
@@ -100,10 +115,15 @@ def extract_frames_with_ffmpeg(video_path, output_folder, fps=1):
 def predict_frames_in_folder(folder_path, model):
     results = []
     filenames = sorted(os.listdir(folder_path))
-    for filename in sorted(os.listdir(folder_path)):
+
+    for filename in filenames:
         if filename.endswith(".jpg") or filename.endswith(".png"):
             image_path = os.path.join(folder_path, filename)
             label, confidence = predict_image(image_path, model)
+            
+            # 🔍 디버깅 로그 추가
+            print(f"[프레임 예측] {filename}: {label} ({confidence:.4f})")
+
             results.append({
                 "filename": filename,
                 "label": label,
